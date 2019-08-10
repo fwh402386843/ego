@@ -1,0 +1,45 @@
+package com.ego.controller;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.ResponseBody;
+
+import com.ego.pojo.EasyUIDataResult;
+import com.ego.pojo.EgoResult;
+import com.ego.service.ItemParamService;
+
+@Controller
+public class ItemParamController {
+	
+	@Autowired
+	private ItemParamService service;
+	
+	
+	@RequestMapping("/item/param/list")
+	@ResponseBody
+	public EasyUIDataResult getParamList(Integer page, Integer rows)throws Exception{
+		EasyUIDataResult result = service.getAllItemParam(page, rows);
+		return result;
+	}
+	@RequestMapping("/item/param/query/itemcatid/{itemcatid}")
+	@ResponseBody
+	public EgoResult getParamData(@PathVariable Long itemcatid) throws Exception{
+		EgoResult result = service.getParamData(itemcatid);
+		return result;
+	}
+	@RequestMapping("/item/param/save/{cid}")
+	@ResponseBody
+	public EgoResult saveParam(@PathVariable String cid,String paramData)throws Exception{
+		EgoResult result = service.save(cid,paramData);
+		return result;
+	}
+	@RequestMapping("/item/param/delete")
+	@ResponseBody
+	public EgoResult delete(String ids) throws Exception{
+		EgoResult result = service.delete(ids);
+		
+		return result;
+	}
+}

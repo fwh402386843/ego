@@ -1,0 +1,221 @@
+package com.ego.service;
+
+import java.util.Date;
+import java.util.List;
+
+import javax.jms.Destination;
+import javax.jms.JMSException;
+import javax.jms.Message;
+import javax.jms.Session;
+import javax.jms.TextMessage;
+import javax.management.loading.PrivateClassLoader;
+
+import org.apache.commons.lang3.StringUtils;
+import org.aspectj.weaver.AjAttribute.PrivilegedAttribute;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.jms.core.JmsTemplate;
+import org.springframework.jms.core.MessageCreator;
+import org.springframework.stereotype.Service;
+
+import com.ego.mapper.TbItemDescMapper;
+import com.ego.mapper.TbItemMapper;
+import com.ego.mapper.TbItemParamItemMapper;
+import com.ego.pojo.EasyUIDataResult;
+import com.ego.pojo.EgoResult;
+import com.ego.pojo.TbItem;
+import com.ego.pojo.TbItemDesc;
+import com.ego.pojo.TbItemDescExample;
+import com.ego.pojo.TbItemDescExample.Criteria;
+/*import com.ego.redis.JedisDao;*/
+import com.ego.pojo.TbItemParamItem;
+import com.ego.pojo.TbItemParamItemExample;
+import com.ego.service.ItemService;
+import com.ego.util.IDUtils;
+import com.ego.util.JsonUtils;
+import com.github.pagehelper.PageHelper;
+import com.github.pagehelper.PageInfo;
+
+@Service     
+public class ItemServiceImpl implements ItemService{
+	@Autowired
+	private TbItemMapper mapper;
+	
+	@Autowired
+	private TbItemDescMapper descMapper;
+	
+	@Autowired
+	private TbItemParamItemMapper paramItemMapper;
+	
+	@Autowired
+	private JmsTemplate jmsTemplate;
+	
+	@Autowired
+	private Destination topic;
+	@Value("${ITEM_INFO}")
+	private String ITEM_INFO;
+	@Value("${BASE}")
+	private String  BASE;
+	@Value("${DESC}")
+	private String DESC;
+	@Value("${ITEM_INFO_EXPIRE}")
+	private Integer ITEM_INFO_EXPIRE;
+	
+	@Autowired
+	/*private  JedisDao dao;*/
+	
+	//查询单个商品
+	@Override
+	public TbItem getItemById(long itemId) throws Exception{
+/*		String json = dao.get(ITEM_INFO+":"+itemId+":"+BASE);
+		if(StringUtils.isNotBlank(json)){
+			TbItem item1 = JsonUtils.jsonToPojo(json, TbItem.class);
+			return item1;
+		}*/
+		TbItem item2 = mapper.selectByPrimaryKey(itemId);
+/*		dao.set(ITEM_INFO+":"+itemId+":"+BASE, JsonUtils.objectToJson(item2));
+		dao.expire(ITEM_INFO+":"+itemId+":"+BASE, ITEM_INFO_EXPIRE);*/
+		return item2;
+	}
+
+	
+	@Override
+	public TbItemDesc getItemDescById(long itemId) throws Exception{
+	/*	String json = dao.get(ITEM_INFO+":"+itemId+":"+DESC);*/
+/*		if(StringUtils.isNotBlank(json)){
+			TbItemDesc itemDesc = JsonUtils.jsonToPojo(json, TbItemDesc.class);
+			return itemDesc;
+		}*/
+		TbItemDesc desc = descMapper.selectByPrimaryKey(itemId);
+/*		dao.set(ITEM_INFO+":"+itemId+":"+DESC, JsonUtils.objectToJson(desc));
+		dao.expire(ITEM_INFO+":"+itemId+":"+DESC, ITEM_INFO_EXPIRE);*/
+		return desc;
+	}
+	
+	
+	//查询所有商品分页
+	@Override
+	public EasyUIDataResult getAllItem(int page, int rows) throws Exception {
+		PageHelper.startPage(page, rows);
+		List<TbItem> list = mapper.selectByExample(null);
+		PageInfo<TbItem> info = new PageInfo<>(list);
+		EasyUIDataResult result = new EasyUIDataResult(info.getTotal(), info.getList());
+		return result;
+	}
+
+
+	//添加商品
+	@Override
+	public EgoResult addItem(TbItem item, String desc,String itemParams) {
+		//补全item对象属性  id, 创建时间  更新时间 状态
+		long id = IDUtils.genItemId();
+		item.setId(id);
+		item.setCreated(new Date());
+		item.setUpdated(new Date());
+		item.setStatus((byte) 1);
+		mapper.insertSelective(item);
+		//创建itemdesc对象，补全属性
+		TbItemDesc itemDesc = new TbItemDesc();
+		itemDesc.setItemId(id);
+		itemDesc.setCreated(new Date());
+		itemDesc.setUpdated(new Date());
+		itemDesc.setItemDesc(desc);
+		descMapper.insertSelective(itemDesc);
+		TbItemParamItem paramItem = new TbItemParamItem();
+		paramItem.setItemId(id);
+		paramItem.setParamData(itemParams);
+		paramItem.setCreated(new Date());
+		paramItem.setUpdated(new Date());
+		paramItemMapper.insertSelective(paramItem);
+		
+		jmsTemplate.send(topic, new MessageCreator() {
+			
+			@Override
+			public Message createMessage(Session session) throws JMSException {
+				TextMessage message = session.createTextMessage(""+id);
+				return message;
+			}
+		});
+		return new EgoResult(200);
+	}
+
+
+	//删除商品
+	@Override
+	public EgoResult deleteItem(String ids) throws Exception{
+		int len=0;
+		int del=0;
+		if(StringUtils.isNotEmpty(ids)){
+			String[] strings = ids.split(",");
+			len = strings.length;
+			TbItemDescExample descExample = new TbItemDescExample();
+			TbItemParamItemExample paramItemExample = new TbItemParamItemExample();
+			for (String id : strings) {
+				int i1 = mapper.deleteByPrimaryKey(Long.parseLong(id));
+				Criteria criteria = descExample.createCriteria();
+				criteria.andItemIdEqualTo(Long.parseLong(id));
+				int i2 = descMapper.deleteByExample(descExample);
+				com.ego.pojo.TbItemParamItemExample.Criteria criteria2 = paramItemExample.createCriteria();
+				criteria2.andItemIdEqualTo(Long.parseLong(id));
+				int i3 = paramItemMapper.deleteByExample(paramItemExample);
+				if(i1==1&&i2==1&&i3==1){
+					del++;
+				}
+			}
+		}
+		if(len==del){
+			return new EgoResult(200);
+		}
+		return new EgoResult(404);
+	}
+
+	//商品下架
+	@Override
+	public EgoResult putaway(String ids) throws Exception {
+		int len=0;
+		int down=0;
+		if(StringUtils.isNotEmpty(ids)){
+			String[] strings = ids.split(",");
+			len = strings.length;
+			for (String id : strings) {
+				TbItem item = mapper.selectByPrimaryKey(Long.parseLong(id));
+				item.setStatus((byte) 2);
+				int i = mapper.updateByPrimaryKeySelective(item);
+				if(i>0){
+					down++;
+				}
+			}
+		}
+		if(len==down){
+			return new EgoResult(200);
+		}
+		return new EgoResult(404);
+	}
+	//商品上架
+	@Override
+	public EgoResult reshelf(String ids) throws Exception {
+		int len=0;
+		int up=0;
+		if(StringUtils.isNotEmpty(ids)){
+			String[] strings = ids.split(",");
+			len = strings.length;
+			for (String id : strings) {
+				TbItem item = mapper.selectByPrimaryKey(Long.parseLong(id));
+				item.setStatus((byte) 1);
+				int i = mapper.updateByPrimaryKeySelective(item);
+				if(i>0){
+					up++;
+				}
+			}
+		}
+		if(len==up){
+			return new EgoResult(200);
+		}
+		return new EgoResult(404);
+	}
+
+	
+
+	
+
+}

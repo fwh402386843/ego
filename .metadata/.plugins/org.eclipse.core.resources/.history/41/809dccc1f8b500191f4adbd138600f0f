@@ -1,0 +1,46 @@
+package com.ego.controller;
+
+import java.util.List;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.ResponseBody;
+
+import com.ego.pojo.Ad1Node;
+import com.ego.pojo.EgoResult;
+import com.ego.pojo.TbContent;
+import com.ego.service.ContentService;
+
+@Controller
+public class ContentController {
+	
+	@Autowired
+	private ContentService service;
+	
+	
+	//查询广告详情
+	@RequestMapping("/content/query/list")
+	@ResponseBody
+	public List<TbContent> getAllContent(int page, int rows, Long categoryId) throws Exception{
+		List<TbContent> list = service.getAllContent(page, rows, categoryId);
+		return list;
+	}
+	
+	//添加广告
+	@RequestMapping("/content/save")
+	@ResponseBody
+	public EgoResult addContent(TbContent content) throws Exception{
+		EgoResult result = service.addContent(content);
+		return result;
+	} 
+	//删除广告
+	@RequestMapping("/content/delete")
+	@ResponseBody
+	public EgoResult delete(String ids) throws Exception{
+		EgoResult result = service.delete(ids);
+		return result;
+	}
+
+	
+}

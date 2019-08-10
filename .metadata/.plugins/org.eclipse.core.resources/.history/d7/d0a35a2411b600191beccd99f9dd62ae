@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:p="http://www.springframework.org/schema/p"
+	xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:dubbo="http://code.alibabatech.com/schema/dubbo" 
+	xmlns:mvc="http://www.springframework.org/schema/mvc"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+        http://www.springframework.org/schema/mvc http://www.springframework.org/schema/mvc/spring-mvc.xsd
+        http://code.alibabatech.com/schema/dubbo http://code.alibabatech.com/schema/dubbo/dubbo.xsd
+        http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context.xsd">
+
+	<!-- 扫描属性文件 -->
+    <context:property-placeholder location="classpath:ftp.properties"/>
+	
+  	<!--添加注解扫描器-->
+    <context:component-scan base-package="com.ego.controller"></context:component-scan>
+
+    <!--总开关-->
+    <!--添加了注解的处理器映射器和处理器适配器-->
+    <!--顺带着将转换器服务给打开-->
+    <mvc:annotation-driven />  
+    
+    
+    <bean id="multipartResolver" class="org.springframework.web.multipart.commons.CommonsMultipartResolver">
+		<!-- 设定默认编码 -->
+		<property name="defaultEncoding" value="UTF-8"></property>
+		<!-- 设定文件上传的最大值5MB，5*1024*1024 -->
+		<property name="maxUploadSize" value="5242880"></property>
+	</bean>
+    
+    
+    <!--配置视图解析器-->
+    <bean class="org.springframework.web.servlet.view.InternalResourceViewResolver">
+        <!--前缀-->
+        <property name="prefix" value="/WEB-INF/jsp/"/>
+        <!--后缀-->
+        <property name="suffix" value=".jsp"/>
+    </bean>
+    <!--开放静态资源-->
+    <mvc:default-servlet-handler/>
+    
+    <!-- 引用dubbo服务 -->
+	<dubbo:application name="ego-manager-web"/>
+	<dubbo:registry protocol="zookeeper" address="192.168.163.129:2181"/>	
+	<dubbo:reference interface="com.ego.service.ItemService" id="itemService" />
+<!-- 	<dubbo:reference interface="com.ego.service.ItemCatService" id="itemCatService" />
+	<dubbo:reference interface="com.ego.service.ItemParamService" id="itemParamService" />
+	<dubbo:reference interface="com.ego.service.CategoryService" id="categoryService" />
+	<dubbo:reference interface="com.ego.service.ContentService" id="contentService" />
+	<dubbo:reference interface="com.ego.service.SearchService" id="searchService" /> -->
+	
+</beans>    

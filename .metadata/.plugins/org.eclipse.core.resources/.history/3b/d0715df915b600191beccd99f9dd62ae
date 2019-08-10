@@ -1,0 +1,6 @@
+ftpclient.host = image.ego.com
+ftpclient.port = 21
+ftpclient.username =ftpuser
+ftpclient.password = 123456
+ftpclient.basepath =/home/ftp
+ftpclient.filepath = /

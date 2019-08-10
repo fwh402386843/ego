@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:context="http://www.springframework.org/schema/context" xmlns:p="http://www.springframework.org/schema/p"
+	xmlns:aop="http://www.springframework.org/schema/aop" xmlns:tx="http://www.springframework.org/schema/tx"
+	xmlns:dubbo="http://code.alibabatech.com/schema/dubbo" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+	http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context.xsd
+	http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop.xsd http://www.springframework.org/schema/tx http://www.springframework.org/schema/tx/spring-tx.xsd
+	http://code.alibabatech.com/schema/dubbo http://code.alibabatech.com/schema/dubbo/dubbo.xsd">
+
+    <context:component-scan base-package="com.ego.service"></context:component-scan>
+ 	<!--房产中介挂个名：方便monitor监控  -->
+ 	<dubbo:application name="ego-manager"></dubbo:application>
+ 	<!--注册中心的地址  -->
+ 	<dubbo:registry protocol="zookeeper"  address="192.168.163.129:2181"></dubbo:registry>
+ 
+	<!--服务的地址  -->
+	<dubbo:protocol name="dubbo" port="20880" />
+	
+   <!--发布服务  -->
+ 	<dubbo:service interface="com.ego.service.ItemService"  ref="itemServiceImpl" timeout="300000"></dubbo:service>
+ 	<dubbo:service interface="com.ego.service.ItemCatService" ref="itemCatServiceImpl" timeout="300000"></dubbo:service>
+ 	<dubbo:service interface="com.ego.service.ItemParamService" ref="itemParamServiceImpl" timeout="300000"></dubbo:service>
+ </beans>   

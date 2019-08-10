@@ -1,0 +1,100 @@
+package com.ego.service;
+
+import java.util.Date;
+import java.util.List;
+
+import org.apache.commons.lang3.StringUtils;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import com.ego.mapper.TbItemCatMapper;
+import com.ego.mapper.TbItemParamMapper;
+import com.ego.pojo.EasyUIDataResult;
+import com.ego.pojo.EgoResult;
+import com.ego.pojo.TbItemCat;
+import com.ego.pojo.TbItemParam;
+import com.ego.pojo.TbItemParamExample;
+import com.ego.pojo.TbItemParamExample.Criteria;
+import com.github.pagehelper.PageHelper;
+import com.github.pagehelper.PageInfo;
+@Service
+public class ItemParamServiceImpl implements ItemParamService{
+	
+	@Autowired
+	private TbItemParamMapper mapper;
+	
+	@Autowired
+	private TbItemCatMapper catMapper;
+	
+
+	@Override
+	public EasyUIDataResult getAllItemParam(int page, int rows) throws Exception {
+		PageHelper.startPage(page, rows);
+		TbItemParamExample example = new TbItemParamExample();
+		example.setOrderByClause("created DESC");
+		List<TbItemParam> list = mapper.selectByExampleWithBLOBs(example);
+		
+		for (TbItemParam p : list) {
+			Long id = p.getItemCatId();
+			TbItemCat cat = catMapper.selectByPrimaryKey(id);
+			p.setItemCatName(cat.getName());
+		}
+		PageInfo<TbItemParam> info = new PageInfo<>(list);
+		EasyUIDataResult result = new EasyUIDataResult(info.getTotal(), info.getList());
+		return result;
+	}
+
+
+	@Override
+	public EgoResult getParamData(Long itemCatId) throws Exception {
+		
+		TbItemParamExample example = new TbItemParamExample();
+		Criteria criteria = example.createCriteria();
+		criteria.andItemCatIdEqualTo(itemCatId);
+		List<TbItemParam> list = mapper.selectByExampleWithBLOBs(example);
+		if(null!=list && list.size()>0){
+			return EgoResult.ok(list);
+		}
+		return new EgoResult(200);
+	}
+
+
+	@Override
+	public EgoResult save(String cid, String itemParams) throws Exception {
+		TbItemParam param = new TbItemParam();
+		param.setItemCatId(Long.parseLong(cid));
+		param.setParamData(itemParams);
+		param.setCreated(new Date());
+		param.setUpdated(new Date());
+		int result = mapper.insert(param);
+		EgoResult egoResult = new EgoResult();
+		if(result>0){
+			egoResult.setStatus(200);
+		}else {
+			egoResult.setStatus(404);
+		}
+		return egoResult;
+	}
+
+
+	@Override
+	public EgoResult delete(String ids) throws Exception {
+		int res=0;
+		int len=0;
+		if(StringUtils.isNotEmpty(ids)){
+			String[] id = ids.split(",");
+			len=id.length;
+			for (String d : id) {
+				int i = mapper.deleteByPrimaryKey(Long.parseLong(d));
+				if(i>0){
+					res++;
+				}
+			}
+		}
+		if(res==len){
+			return new EgoResult(200);
+		}
+		return new EgoResult(404);
+	}
+
+}

@@ -1,0 +1,18 @@
+ackage com.ego.service;
+
+import com.ego.pojo.EasyUIDataResult;
+import com.ego.pojo.EgoResult;
+
+public interface ItemParamService {
+	
+	EasyUIDataResult getAllItemParam(int page,int rows) throws Exception;
+	
+	EgoResult getParamData(Long itemCatId) throws Exception;
+
+	EgoResult save(String cid, String paramData)throws Exception;
+	
+	EgoResult delete(String ids) throws Exception;
+	
+	
+	
+}
